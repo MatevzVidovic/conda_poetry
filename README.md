@@ -1,7 +1,7 @@
 
 
 
-# Idea
+# Main idea
 
 Dependency management is a pain.
 How to make it easier for python?
@@ -14,9 +14,9 @@ All py dependencies managed by poetry.
 You install your stuff with conda an poetry.
 Poetry installs are automatically tracked in pyproject.toml.
 Conda installs have to be tracked manually by exporting them to environment.yml.
-Before making a commit, you do: 
 
-But, while making the current commit, you install some stuff and forget to
+
+
 
 ## Setup
 
@@ -31,6 +31,9 @@ poetry init
 poetry config --local virtualenvs.create false # Because our venv will be conda, not a separate regular .venv, like poetry would otherwise use.
 ```
 
+
+# Poetry
+
 ## How poetry .lock and .toml work?
 
 poetry add does:
@@ -43,12 +46,12 @@ poetry install:
 - if not, regenerate .lock (probs try to keep old versions and just add stuff. And if conflicting, change old versions.)
 - if you deleted .lock, it will actually completely remake it and then install stuff.
 
-## Use:
+## Poetry use:
 
 ```bash
 poetry add --group dev ruff mypy
 
-# so we also install taht group
+# so we also install the dev group
 poetry install --with dev
 ```
 
@@ -88,28 +91,10 @@ pp typecheck
 
 
 
+# Conda
 
+## Main conda problem
 
-
-
-
-
-
-
-
-
-
-
-
-# Idea
-
-Dependency management is a pain.
-How to make it easier for python?
-
-Conda + poetry inside conda.
-
-All non-py dependencies managed by conda.
-All py dependencies managed by poetry.
 
 You install your stuff with conda an poetry.
 Poetry installs are automatically tracked in pyproject.toml.
@@ -137,20 +122,23 @@ How do we solve these problems?
 
 
 
-# Solution
+## Solution
 
 
-Have this following single-command also be added as a precommit hook script, so you always have atomic working commits:
 
 Always paste these 3 lines at once, so there is never any dependency loss:
 (or have them be one command - either with a .bashrc alias, or making a conda_update.sh script)
 
-conda env update -n myproj -f ./.conda/environment.yml    
-conda env export -n myproj --from-history > ./.conda/environment.yml
-conda env export -n myproj --from-history > ./.conda/environment_readable.yml
+mkdir -p ./.conda
+conda env update -f ./.conda/environment.yml    
+conda env export > ./.conda/environment.yml
+conda env export --from-history > ./.conda/environment_readable.yml
 
 
+Have this following single-command also be added as a precommit hook script, so you always have atomic working commits,
+because this always happens before every commit.
 
+### Explanation of the commands:
 
 conda env update     updates current env with stuff in yml, but doesn't remove anything extra
 
@@ -161,23 +149,30 @@ This makes it nicely readable.
 
 ## Making this a precommit hook
 
+Append to .git/hooks/pre-commit
+This is the script that git always runs before making a commit.
+
+```bash
 cat << 'EOF' >> .git/hooks/pre-commit
 #!/bin/sh
-conda env update -n myproj -f environment.yml && conda env export -n myproj --from-history > environment.yml && conda env export -n myproj --from-history > environment_readable.yml
+conda env update -n myproj -f ./.conda/environment.yml && conda env export -n myproj > ./.conda/environment.yml && conda env export -n myproj --from-history > ./.conda/environment_readable.yml
 EOF
-
+```
 
 
 
 ## Exact bit-by-bit env recreation:
+
 You go rebase to an older commit. Now your env is too new.
 How to get it to that correct state?
 
+conda env create -n myproj -f ./.conda/environment.yml
 
-conda env create -n myproj -f environment.yml
-Should do it. It Recreates the env exactly as it was when you exported it.
+This should do it. 
+It Recreates the env exactly as it was when you exported it.
 
 Poetry dependencies are inside conda, so they are also recreated exactly as they were.
+
 But, if you want to be sure, you can also do:
 poetry install --sync
 to remove any py dependencies that are not in pyproject.toml.
@@ -189,9 +184,10 @@ to remove any py dependencies that are not in pyproject.toml.
 
 echo "#!/bin/sh
 
-conda env update -n myproj -f environment.yml    
-conda env export -n myproj --from-history > environment.yml
-conda env export -n myproj --from-history > environment_readable.yml
+mkdir -p ./.conda
+conda env update -n myproj -f ./.conda/environment.yml
+conda env export -n myproj > ./.conda/environment.yml
+conda env export -n myproj --from-history > ./.conda/environment_readable.yml
 
 " > conda_update.sh
 chmod +x conda_update.sh
@@ -200,7 +196,7 @@ Now you always just run:
 . /conda_update.sh
 
 Also, you could jsut have these three commands added as an alias in your .bashrc or .zshrc or whatever.
-alias cu='conda env update -n myproj -f environment.yml && conda env export -n myproj --from-history > environment.yml && conda env export -n myproj --from-history > environment_readable.yml'
+alias cu='conda env update -n myproj -f ./.conda/environment.yml && conda env export -n myproj > ./.conda/environment.yml && conda env export -n myproj --from-history > ./.conda/environment_readable.yml'
 
 
 

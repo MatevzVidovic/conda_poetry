@@ -1,0 +1,6 @@
+name: conda_poetry
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+prefix: /home/user/miniconda/envs/conda_poetry
