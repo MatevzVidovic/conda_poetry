@@ -16,9 +16,161 @@ Poetry installs are automatically tracked in pyproject.toml.
 Conda installs have to be tracked manually by exporting them to environment.yml.
 
 
+You can make it so conda is activated automatically when you cd into the repo.
+We use autoenv for this.
+
+You can make it so conda env is always correctly stored in a file.
+We use alias=cosa for this.
+
+You can make it so conda env is always correctly stored in a file before every commit.
+We use a precommit hook for this.
 
 
-## Setup
+# Main useful info
+
+
+## Setup with autoenv
+
+
+**Don't forget to change the vars at the top of this script:**
+```sh
+
+ENV_NAME=throwaway_env
+PY_VERSION=3.12
+
+conda create -n $ENV_NAME python=$PY_VERSION
+conda activate $ENV_NAME
+pip install poetry
+poetry init
+poetry config --local virtualenvs.create false # Because our venv will be conda, not a separate regular .venv, like poetry would otherwise use.
+
+# ----- End of basic setup -----
+
+mkdir -p ./.conda
+conda env update -f ./.conda/environment.yml    
+conda env export > ./.conda/environment.yml
+conda env export --from-history > ./.conda/environment_readable.yml
+
+
+# ----- End of advised conda env file saving setup -----
+
+
+
+# ----- Start of autoenv setup -----
+
+cat << EOF >> .env
+
+# ensure conda is available in non-interactive shells
+# (only needed if conda init didn’t add this already)
+# [ -f "\$HOME/miniconda3/etc/profile.d/conda.sh" ] && . "\$HOME/miniconda3/etc/profile.d/conda.sh"
+
+env_name=$ENV_NAME
+conda activate \$env_name
+
+alias pp="poetry run"
+alias cosa="conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml"
+
+EOF
+
+cat << 'EOF' >> .env.leave
+
+conda deactivate
+
+EOF
+
+
+# ----- Start of making precommit hook -----
+
+cat << 'EOF' >> .git/hooks/pre-commit
+
+#!/bin/sh
+conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml
+
+EOF
+
+```
+
+
+
+
+### If you haven't already, install autoenv:
+```sh
+# for bash
+git clone https://github.com/hyperupcall/autoenv ~/.autoenv
+echo 'source ~/.autoenv/activate.sh' >> ~/.bashrc   # or ~/.zshrc
+echo 'export AUTOENV_ENABLE_LEAVE=1' >> ~/.bashrc   # or ~/.zshrc
+```
+
+or for zsh:
+```sh
+git clone https://github.com/hyperupcall/autoenv ~/.autoenv
+echo 'source ~/.autoenv/activate.sh' >> ~/.zshrc
+echo 'export AUTOENV_ENABLE_LEAVE=1' >> ~/.zshrc
+```
+
+
+
+
+
+### Important notes:
+
+
+#### Rebasing to older commit - exact bit-by-bit env recreation:
+
+
+You go rebase to an older commit. Now your env is too new.
+How to get it to that correct state?
+
+```sh
+conda env create -n myproj -f ./.conda/environment.yml
+```
+
+This should do it. 
+It Recreates the env exactly as it was when you exported it.
+
+Poetry dependencies are inside conda, so they are also recreated exactly as they were.
+But, if you want to be sure, you can also do:
+```sh
+poetry install --sync
+```
+
+#### .env.leave can be problematic
+
+If you do:
+cd repo_root/code/src
+First, repo_root/.env is run, then repo_root/.env.leave,
+then repo_root/code/.env, then repo_root/code/.env.leave,
+then repo_root/code/src/.env is run.
+
+So if you want the .env scripts to stack, don't have .env.leave scripts in the parent dirs.
+
+But you will probably just be running stuff from repo_root, so this won't be a problem.
+
+
+
+
+### Advice
+
+
+
+#### making scripts for poetry aliases
+
+Adding this section to pyproject.toml enables scripts like: 
+```
+[tool.poetry.scripts]
+lint = "ruff check . --fix"
+```
+
+poetry run lint    # runs this now
+
+Since we have alias pp="poetry run", we can do:
+pp lint
+
+
+
+
+
+### Basic setup
 
 ```sh
 ENV_NAME=conda_poetry
@@ -30,6 +182,48 @@ pip install poetry
 poetry init
 poetry config --local virtualenvs.create false # Because our venv will be conda, not a separate regular .venv, like poetry would otherwise use.
 ```
+
+### More informational snippets are showed below:
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+
 
 
 # Poetry
@@ -129,11 +323,12 @@ For saving the env, updating the env after pulling, creating the env from a file
 Always paste these 3 lines at once, so there is never any dependency loss:
 (or have them be one command - either with a .bashrc alias, or making a conda_update.sh script)
 
+```sh
 mkdir -p ./.conda
 conda env update -f ./.conda/environment.yml    
 conda env export > ./.conda/environment.yml
 conda env export --from-history > ./.conda/environment_readable.yml
-
+```
 
 Have this following single-command also be added as a precommit hook script, so you always have atomic working commits,
 because this always happens before every commit.
@@ -154,8 +349,10 @@ This is the script that git always runs before making a commit.
 
 ```sh
 cat << 'EOF' >> .git/hooks/pre-commit
+
 #!/bin/sh
-conda env update -n myproj -f ./.conda/environment.yml && conda env export -n myproj > ./.conda/environment.yml && conda env export -n myproj --from-history > ./.conda/environment_readable.yml
+conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml
+
 EOF
 ```
 
@@ -263,7 +460,7 @@ echo 'export AUTOENV_ENABLE_LEAVE=1' >> ~/.zshrc
 ```sh
 # ensure conda is available in non-interactive shells
 # (only needed if conda init didn’t add this already)
-[ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ] && . "$HOME/miniconda3/etc/profile.d/conda.sh"
+# [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ] && . "$HOME/miniconda3/etc/profile.d/conda.sh"
 
 conda activate myenv
 ```
@@ -274,7 +471,7 @@ conda activate myenv
 conda deactivate
 ```
 
-### !!!Important info!!!
+### Important info on .env.leave
 
 If you will be using a nested structure, like repo_root/code/src,
 and you will do "cd repo_root/code/src"
