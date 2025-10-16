@@ -70,12 +70,13 @@ conda activate \$env_name
 alias pp="poetry run"
 alias cosa="conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml"
 alias cosa_setup="mkdir -p .conda && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml"
-alias cosa_precommit_setup="cat << 'EOF' >> .git/hooks/pre-commit
+alias cosa_precommit_setup="cat << 'EOF2' >> .git/hooks/pre-commit
 
 #!/bin/sh
 conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml
 
-EOF"
+EOF2
+"
 
 EOF
 
