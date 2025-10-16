@@ -73,7 +73,7 @@ alias cosa_setup="mkdir -p .conda && conda env export > ./.conda/environment.yml
 alias cosa_precommit_setup="cat << 'EOF2' >> .git/hooks/pre-commit
 
 #!/bin/sh
-conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml
+conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml && git add .
 
 EOF2
 "
@@ -361,7 +361,7 @@ This is the script that git always runs before making a commit.
 cat << 'EOF' >> .git/hooks/pre-commit
 
 #!/bin/sh
-conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml
+conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml && git add .
 
 EOF
 ```
