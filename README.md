@@ -124,7 +124,7 @@ How do we solve these problems?
 
 ## Solution
 
-
+For saving the env, updating the env after pulling, creating the env from a file:
 
 Always paste these 3 lines at once, so there is never any dependency loss:
 (or have them be one command - either with a .bashrc alias, or making a conda_update.sh script)
@@ -161,7 +161,7 @@ EOF
 
 
 
-## Exact bit-by-bit env recreation:
+## Rebasing to older commit - exact bit-by-bit env recreation:
 
 You go rebase to an older commit. Now your env is too new.
 How to get it to that correct state?
@@ -200,3 +200,115 @@ alias cu='conda env update -n myproj -f ./.conda/environment.yml && conda env ex
 
 
 
+
+
+# Autoenv functionalities
+
+It is very annoying that every time you go work on the repo, you have to do:
+conda activate environment_name
+
+It would be nice if after cd-ing into the repo dir, it got activated automatically.
+And, preferably, if after exiting the repo dir it would get deactivated.
+
+direnv is a popular tool that activates on enter and deactivates on exit.
+- But it is complicated to make it work with conda.
+- And it can't set up aliases.
+- It is more meant for .env variable setup and aliases.
+It has it's own language, not just running a bash script.
+It does so, so you can have one file of instructions, and it knows how to set up on enter and tear-down on exit.
+
+
+
+We want tools that just run some script we make on enter, and run another script on exit.
+
+We have smartcd - stores enter and leave scripts outside the repo (~/.smartcd/scripts/...)
+Not in repo, so not commited to git - this can be nice in some cases, but generally you don't want this.
+
+But
+
+Autoenv does exactly what we want.
+Runs in-repo script on enter (.env script), and runs another in-repo script on exit (.env.leave script).
+
+## Autoenv tool:
+
+### Drawbacks:
+
+Can't rename what files it looks for. So we have to use .env and .env.leave.
+And you might want .env to be solely for env vars - they get loaded into your running program.
+
+Also,
+cant have scripts inside a directory. So you need both .env and .env.leave in your git root.
+This isn't too nice, because it clutters stuff.
+
+But if you have some wrapper dirs in your repo, like repo_root/code/src
+then putting the scripts in root doesn't clutter things so badly.
+Also, the .env in your src/ is still just holding env vars for your program.
+
+### Installation and setup
+```bash
+# for bash
+git clone https://github.com/hyperupcall/autoenv ~/.autoenv
+echo 'source ~/.autoenv/activate.sh' >> ~/.bashrc   # or ~/.zshrc
+echo 'export AUTOENV_ENABLE_LEAVE=1' >> ~/.bashrc   # or ~/.zshrc
+```
+
+```bash
+git clone https://github.com/hyperupcall/autoenv ~/.autoenv
+echo 'source ~/.autoenv/activate.sh' >> ~/.zshrc
+echo 'export AUTOENV_ENABLE_LEAVE=1' >> ~/.zshrc
+```
+
+### .env
+
+```bash
+# ensure conda is available in non-interactive shells
+# (only needed if conda init didn’t add this already)
+[ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ] && . "$HOME/miniconda3/etc/profile.d/conda.sh"
+
+conda activate myenv
+```
+
+### .env.leave
+
+```bash
+conda deactivate
+```
+
+
+## Smart cd
+
+Stores enter and leave scripts outside the repo (~/.smartcd/scripts/...).
+
+```bash
+# install & load
+git clone https://github.com/cxreg/smartcd ~/.smartcd-src
+cd ~/.smartcd-src && make install
+echo 'source ~/bin/load_smartcd' >> ~/.bashrc   # or ~/.zshrc
+# create scripts for current directory
+smartcd edit enter   # opens your $EDITOR for the "enter" script
+smartcd edit leave   # opens your $EDITOR for the "leave" script
+```
+
+
+
+## zsh-autoenv
+
+Works only with zsh.
+
+But it supports custom enter and leave script names.
+
+Can look up to parent dirs for scripts.
+
+Still can't look to child dirs tho.
+
+```bash
+# zsh-autoenv
+git clone https://github.com/Tarrasch/zsh-autoenv ~/.zsh-autoenv
+source ~/.zsh-autoenv/autoenv.zsh
+
+# custom names and parent lookup
+export AUTOENV_FILE_ENTER=".env_enter.zsh"
+export AUTOENV_FILE_LEAVE=".env_leave.zsh"
+export AUTOENV_HANDLE_LEAVE=1
+export AUTOENV_LOOK_UPWARDS=1
+```
