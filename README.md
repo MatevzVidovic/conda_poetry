@@ -69,6 +69,7 @@ conda activate \$env_name
 
 alias pp="poetry run"
 alias cosa="conda env update -f ./.conda/environment.yml && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml"
+alias cosa_setup="mkdir -p .conda && conda env export > ./.conda/environment.yml && conda env export --from-history > ./.conda/environment_readable.yml"
 
 EOF
 
