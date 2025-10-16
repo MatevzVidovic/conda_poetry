@@ -20,7 +20,7 @@ Conda installs have to be tracked manually by exporting them to environment.yml.
 
 ## Setup
 
-```bash
+```sh
 ENV_NAME=conda_poetry
 PY_VERSION=3.12
 
@@ -48,7 +48,7 @@ poetry install:
 
 ## Poetry use:
 
-```bash
+```sh
 poetry add --group dev ruff mypy
 
 # so we also install the dev group
@@ -152,7 +152,7 @@ This makes it nicely readable.
 Append to .git/hooks/pre-commit
 This is the script that git always runs before making a commit.
 
-```bash
+```sh
 cat << 'EOF' >> .git/hooks/pre-commit
 #!/bin/sh
 conda env update -n myproj -f ./.conda/environment.yml && conda env export -n myproj > ./.conda/environment.yml && conda env export -n myproj --from-history > ./.conda/environment_readable.yml
@@ -245,14 +245,14 @@ then putting the scripts in root doesn't clutter things so badly.
 Also, the .env in your src/ is still just holding env vars for your program.
 
 ### Installation and setup
-```bash
+```sh
 # for bash
 git clone https://github.com/hyperupcall/autoenv ~/.autoenv
 echo 'source ~/.autoenv/activate.sh' >> ~/.bashrc   # or ~/.zshrc
 echo 'export AUTOENV_ENABLE_LEAVE=1' >> ~/.bashrc   # or ~/.zshrc
 ```
 
-```bash
+```sh
 git clone https://github.com/hyperupcall/autoenv ~/.autoenv
 echo 'source ~/.autoenv/activate.sh' >> ~/.zshrc
 echo 'export AUTOENV_ENABLE_LEAVE=1' >> ~/.zshrc
@@ -260,7 +260,7 @@ echo 'export AUTOENV_ENABLE_LEAVE=1' >> ~/.zshrc
 
 ### .env
 
-```bash
+```sh
 # ensure conda is available in non-interactive shells
 # (only needed if conda init didn’t add this already)
 [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ] && . "$HOME/miniconda3/etc/profile.d/conda.sh"
@@ -270,16 +270,53 @@ conda activate myenv
 
 ### .env.leave
 
-```bash
+```sh
 conda deactivate
 ```
 
+### !!!Important info!!!
 
-## Smart cd
+If you will be using a nested structure, like repo_root/code/src,
+and you will do "cd repo_root/code/src"
+(You might not be doing that, and rather just running things from repo_root - in this case you will be fine)
+First, repo_root/.env will be run, then repo_root/.env.leave will be run,
+then repo_root/code/.env will be run, then repo_root/code/.env.leave will be run,
+then repo_root/code/src/.env will be run.
+
+So if you want the .env scripts to stack, don't have .env.leave scripts in the parent dirs.
+
+
+### Autoenv tips
+
+- Use absolute-ish paths via the built-ins to avoid breakage in subdirs:
+(Autoenv exposes AUTOENV_CUR_FILE and AUTOENV_CUR_DIR for exactly this.)
+```sh
+# inside any .env
+# AUTOENV_CUR_DIR points to the directory that contains THIS .env
+source "$AUTOENV_CUR_DIR/venv/bin/activate"
+```
+
+- Guard against re-activation if you bounce around:
+```sh
+if [ "${VIRTUAL_ENV##*/}" != "myenv" ]; then
+  . "$AUTOENV_CUR_DIR/.venv/bin/activate"
+fi
+```
+
+
+### Autoenv tips
+
+
+
+
+
+## Alternatives to autoenv
+
+### Smart cd
 
 Stores enter and leave scripts outside the repo (~/.smartcd/scripts/...).
 
-```bash
+```sh
 # install & load
 git clone https://github.com/cxreg/smartcd ~/.smartcd-src
 cd ~/.smartcd-src && make install
@@ -291,7 +328,7 @@ smartcd edit leave   # opens your $EDITOR for the "leave" script
 
 
 
-## zsh-autoenv
+### zsh-autoenv
 
 Works only with zsh.
 
@@ -301,7 +338,7 @@ Can look up to parent dirs for scripts.
 
 Still can't look to child dirs tho.
 
-```bash
+```sh
 # zsh-autoenv
 git clone https://github.com/Tarrasch/zsh-autoenv ~/.zsh-autoenv
 source ~/.zsh-autoenv/autoenv.zsh
